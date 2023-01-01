@@ -1,0 +1,53 @@
+blueprint:
+  name: Motion-activated Outlet
+  description: Turn on a outlet when motion is detected.
+  domain: automation
+  input:
+    motion_entity:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    outlet_target:
+      name: outlet
+      selector:
+        target:
+          entity:
+            domain: outlet
+    no_motion_wait:
+      name: Wait time
+      description: Time to leave the outlet on after last motion is detected.
+      default: 900
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+
+# If motion is detected within the delay,
+# we restart the script.
+mode: restart
+max_exceeded: silent
+
+trigger:
+  platform: state
+  entity_id: !input motion_entity
+  from: "off"
+  to: "on"
+
+action:
+  - alias: "Turn on theoutlett"
+    service: switch.turn_on
+    target: !input outlet_target
+  - alias: "Wait until there is no motion from device"
+    wait_for_trigger:
+      platform: state
+      entity_id: !input motion_entity
+      from: "on"
+      to: "off"
+  - alias: "Wait the number of seconds that has been set"
+    delay: !input no_motion_wait
+  - alias: "Turn off the outlet"
+    service: switch.turn_off
+    target: !input outlet_target
